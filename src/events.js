@@ -5,10 +5,6 @@ export function initEventListeners(comments) {
   const commentInput = document.querySelector('.add-form-text');
   const addButton = document.querySelector('.add-form-button');
 
-  nameInput.addEventListener('input', function () {});
-
-  commentInput.addEventListener('input', function () {});
-
   addButton.addEventListener('click', function () {
     handleAddComment(comments);
   });
