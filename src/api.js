@@ -27,8 +27,8 @@ export function postComment({name, text }) {
     return fetch(API_URL, {
         method: 'POST',
         headers: {
-            'Content-Type': 'aplication/json',
-        },
+         'Content-Type': 'application/json',
+    },
         body: JSON.stringify({name, text}),
     })
     .then((response) => {
