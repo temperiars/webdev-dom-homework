@@ -1,4 +1,5 @@
 import { sanitizeHTML } from './sanitize.js';
+import { formatDate } from './date.js';
 import { initLikeButtonListeners } from './likes.js';
 import { initCommentClickListeners } from './reply.js';
 
@@ -15,7 +16,7 @@ export function renderComments(comments) {
         <li class="comment" data-index="${index}">
           <div class="comment-header">
             <div>${sanitizeHTML(comment.name)}</div>
-            <div>${comment.date}</div>
+            <div>${formatDate(comment.date)}</div>
           </div>
           <div class="comment-body">
             <div class="comment-text">
