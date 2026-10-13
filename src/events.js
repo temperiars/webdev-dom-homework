@@ -60,9 +60,10 @@ export function initEventListeners(comments) {
         alert(error.message);
       })
       .finally(() => {
-        loaderText.remove();
-        addForm.style.display = 'flex';
-      });
+   loaderText.remove();
+   addForm.style.display = 'flex';
+   addButton.disabled = false;
+ });
   });
 
   nameInput.addEventListener('keydown', function (event) {
