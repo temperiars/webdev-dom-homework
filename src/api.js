@@ -1,17 +1,29 @@
 const API_URL =
   'https://wedev-api.sky.pro/api/v1/ekaterina-stepanova/comments';
 
+function getResponseData(response) {
+  return response.json().then((data) => ({
+    response,
+    data,
+  }));
+}
+
+function checkResponse({ response, data }) {
+  if (!response.ok) {
+    throw new Error(
+      data.error || 'Ошибка при выполнении запроса',
+    );
+  }
+
+  return data;
+}
+
 export function getComments() {
   return fetch(API_URL, {
     method: 'GET',
   })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error('Ошибка загрузки комментариев');
-      }
-
-      return response.json();
-    })
+    .then(getResponseData)
+    .then(checkResponse)
     .then((data) => {
       return data.comments.map((comment) => ({
         id: comment.id,
@@ -20,6 +32,7 @@ export function getComments() {
         text: comment.text,
         likes: comment.likes,
         isLiked: false,
+        isLikeLoading: false,
       }));
     });
 }
@@ -29,18 +42,6 @@ export function postComment({ name, text }) {
     method: 'POST',
     body: JSON.stringify({ name, text }),
   })
-  
-    .then((response) => {
-      if (response.status === 400) {
-        return response.json().then((errorData) => {
-          throw new Error(errorData.error || 'Ошибка валидации');
-        });
-      }
-
-      if (!response.ok) {
-        throw new Error('Ошибка отправки комментария');
-      }
-
-      return response.json();
-    });
+    .then(getResponseData)
+    .then(checkResponse);
 }

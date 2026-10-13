@@ -2,6 +2,8 @@ import { getComments } from './api.js';
 import { renderComments } from './render.js';
 import { initEventListeners } from './events.js';
 
+renderComments([], true);
+
 getComments()
   .then((comments) => {
     renderComments(comments);
@@ -9,5 +11,9 @@ getComments()
   })
   .catch((error) => {
     console.error('Не удалось загрузить комментарии:', error);
-    alert('Не удалось загрузить комментарии. Попробуйте обновить страницу.');
+
+    const commentsList = document.querySelector('.comments');
+
+    commentsList.innerHTML =
+      '<li class="loader">Не удалось загрузить комментарии. Попробуйте обновить страницу.</li>';
   });
