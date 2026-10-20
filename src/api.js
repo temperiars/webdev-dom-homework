@@ -1,29 +1,19 @@
 const API_URL =
   'https://wedev-api.sky.pro/api/v1/ekaterina-stepanova/comments';
 
-function getResponseData(response) {
-  return response.json().then((data) => ({
-    response,
-    data,
-  }));
-}
-
-function checkResponse({ response, data }) {
-  if (!response.ok) {
-    throw new Error(
-      data.error || 'Ошибка при выполнении запроса',
-    );
-  }
-
-  return data;
-}
-
-export function getComments() {
+ export function getComments() {
   return fetch(API_URL, {
     method: 'GET',
   })
-    .then(getResponseData)
-    .then(checkResponse)
+    .then((response) => {
+      if (response.status === 500) {
+        throw new Error('Ошибка сервера');
+      }
+      if (!response.ok) {
+        throw new Error('Ошибка загрузки комментариев');
+      }
+      return response.json();
+    })
     .then((data) => {
       return data.comments.map((comment) => ({
         id: comment.id,
@@ -34,14 +24,38 @@ export function getComments() {
         isLiked: false,
         isLikeLoading: false,
       }));
+    })
+    .catch((error) => {
+      if (error.name === 'TypeError') {
+        throw new Error('Сетевые проблемы');
+      }
+      throw error;
     });
 }
 
 export function postComment({ name, text }) {
   return fetch(API_URL, {
     method: 'POST',
-    body: JSON.stringify({ name, text }),
+    body: JSON.stringify({ name, text }), 
   })
-    .then(getResponseData)
-    .then(checkResponse);
+    .then((response) => {
+      if (response.status === 500) {
+        throw new Error('Ошибка сервера');
+      }
+      if (response.status === 400) {
+        return response.json().then((errorData) => {
+          throw new Error(errorData.error || 'Ошибка валидации');
+        });
+      }
+      if (!response.ok) {
+        throw new Error('Ошибка отправки комментария');
+      }
+      return response.json();
+    })
+    .catch((error) => {
+      if (error.name === 'TypeError') {
+        throw new Error('Сетевые проблемы');
+      }
+      throw error;
+    });
 }
