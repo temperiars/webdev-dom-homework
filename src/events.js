@@ -1,5 +1,34 @@
-import { getComments, postComment } from './api.js';
+import { login, getComments, postComment } from './api.js';
 import { renderComments } from './render.js';
+import { saveAuth, getToken } from './auth.js';
+
+export function initLoginListeners() {
+  const loginInput = document.querySelector('.login-input');
+  const passwordInput = document.querySelector('.password-input');
+  const loginButton = document.querySelector('.login-button');
+  const errorEl = document.querySelector('.login-error');
+
+  loginButton.addEventListener('click', (e) => {
+    e.preventDefault();
+
+    const loginValue = loginInput.value.trim();
+    const passwordValue = passwordInput.value.trim();
+
+    if (!loginValue || !passwordValue) {
+      errorEl.textContent = 'Заполните все поля';
+      return;
+    }
+
+    login({ login: loginValue, password: passwordValue })
+      .then((data) => {
+        saveAuth(data.user.token, data.user.name);
+        window.location.reload();
+      })
+      .catch((error) => {
+        errorEl.textContent = error.message;
+      });
+  });
+}
 
 export function initEventListeners() {
   const nameInput = document.querySelector('.add-form-name');
@@ -7,86 +36,56 @@ export function initEventListeners() {
   const addButton = document.querySelector('.add-form-button');
   const addForm = document.querySelector('.add-form');
 
-  nameInput.addEventListener('input', (e) => {
-    localStorage.setItem('name', e.target.value);
-  });
+  if (!addButton) return;
+
   commentInput.addEventListener('input', (e) => {
-    localStorage.setItem('comment', e.target.value);
+    localStorage.setItem('commentDraft', e.target.value);
   });
+  commentInput.value = localStorage.getItem('commentDraft') || '';
 
-  nameInput.value = localStorage.getItem('name') || '';
-  commentInput.value = localStorage.getItem('comment') || '';
-
-  const handlePostClick = () => {
-    const name = nameInput.value.trim();
+  addButton.addEventListener('click', () => {
     const commentText = commentInput.value.trim();
+    const token = getToken();
 
-    if (name.length < 3 || commentText.length < 3) {
-      alert('Имя и комментарий должны быть не короче 3 символов');
+    if (commentText.length < 3) {
+      alert('Комментарий должен быть не короче 3 символов');
       return;
     }
 
     addButton.disabled = true;
     addForm.style.display = 'none';
+    const loader = document.createElement('div');
+    loader.className = 'form-loader';
+    loader.textContent = 'Комментарий добавляется...';
+    addForm.parentNode.insertBefore(loader, addForm);
 
-    const loaderText = document.createElement('div');
-    loaderText.className = 'form-loader';
-    loaderText.textContent = 'Комментарий добавляется...';
-    addForm.parentNode.insertBefore(loaderText, addForm);
-
-    const sendComment = (attempt = 1) => {
-      return postComment({ name, text: commentText }).catch((error) => {
-        if (error.message === 'Ошибка сервера' && attempt < 2) {
-          return sendComment(attempt + 1);
-        }
-        throw error;
-      });
-    };
-
-    sendComment()
-  .then(() => {
-    return getComments();
-  })
-  .then((updatedComments) => {
-    renderComments(updatedComments);
-    nameInput.value = '';
-    commentInput.value = '';
-
-    localStorage.removeItem('name');
-    localStorage.removeItem('comment');
-  })
+    postComment({ text: commentText, token })
+      .then(() => {
+        return getComments();
+      })
+      .then((updated) => {
+        localStorage.removeItem('commentDraft');
+        renderComments(updated);
+        initEventListeners();
+      })
       .catch((error) => {
-        console.error('Ошибка при отправке:', error);
-        if (error.message === 'Ошибка сервера') {
-          alert('Сервер сломался, попробуй позже');
-        } else if (error.message === 'Сетевые проблемы') {
-          alert('Кажется, у вас сломался интернет, попробуйте позже');
-        } else if (error.message.includes('долж')) {
-          alert('Имя и комментарий должны быть не короче 3 символов');
-        } else {
-          alert(error.message);
-        }
+        console.error('Ошибка при отправке комментария:', error);
+        alert(error.message);
       })
       .finally(() => {
-        loaderText.remove();
-        addForm.style.display = 'flex';
-        addButton.disabled = false;
+        loader.remove();
+
+        const form = document.querySelector('.add-form');
+
+        if (form) {
+          form.style.display = 'flex';
+
+          const currentButton = form.querySelector('.add-form-button');
+
+          if (currentButton) {
+            currentButton.disabled = false;
+          }
+        }
       });
-  };
-
-  addButton.addEventListener('click', handlePostClick);
-
-  nameInput.addEventListener('keydown', function (event) {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      addButton.click();
-    }
-  });
-
-  commentInput.addEventListener('keydown', function (event) {
-    if (event.key === 'Enter' && event.ctrlKey) {
-      event.preventDefault();
-      addButton.click();
-    }
   });
 }
